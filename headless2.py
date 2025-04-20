@@ -54,7 +54,6 @@ def test():
     
     login()
     # ?
-    wait.until(EC.visibility_of_element_located((By.XPATH, "/html/body/div[3]/div/div[2]/div/div[2]/div")))
     click_button(".ant-modal-confirm-btns > button:nth-child(1)") #neyim var button
     print("neyim var button clicked to refuse")
     
@@ -68,9 +67,16 @@ def test():
     print("----------------------------------")
     book_appointment("11.40")
 
+
+    #wait_warping() # did not work
+    
+    print("trying to get active appointments")
     get_active_appointments()
-    cancel_appointment("eylem")
-    revert_appointment("eylem")
+    #print("trying to cancel an appointments")
+    #cancel_appointment("eylem")
+    #print("run cancel app func")
+    
+    #revert_appointment("eylem")
     
     
 def search_doctor(doctor_name):
@@ -129,13 +135,14 @@ def revert_appointment(appointment_identifier):
 
 def get_active_appointments():
     try:
-        if not driver.current_url == "https://mhrs.gov.tr/vatandas/#/":
-            driver.get("https://mhrs.gov.tr/vatandas/#/")
+        driver.get("https://mhrs.gov.tr/vatandas/#/")
         
+        wait_loading_screen() 
+    
+        appointments_list = WebDriverWait(driver, 2).until(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".ant-list-items li"))
+        )
         
-        wait_loading_screen()
-        driver.find_element(By.CSS_SELECTOR, ".ant-list-items")
-        appointments_list = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".ant-list-items li")))
         print("appointments_list size:", len(appointments_list))
         print(appointments_list)
         # Print out the text of each appointment
@@ -159,7 +166,6 @@ def get_active_appointments():
         return appointments_json  # Return the JSON string
     except Exception as e:
         print("Cannot find any active appointments.")
-        print(e)
     
 
 def list_available_doctors(city_name, town_name, clinic, hospital):
@@ -204,7 +210,9 @@ def list_available_appointment_hours(doctor_name, appointment_date):
     
 def book_appointment(appointment_hour):
     select_main_hour_slot(appointment_hour)
-    select_sub_hour_slot(appointment_hour)
+    if not select_sub_hour_slot(appointment_hour):
+        print("Appointment booked by somebody else. Please choose another time slot.")
+        return 
     accept_appointment()
     #if has_exceeded_max_appointments():
     #    print("it did exceed max count")
@@ -594,6 +602,8 @@ def wait_loading_screen():
     #wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "ant-spin-spinning")))
     #wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "ant-spin")))    
     #wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "ant-modal-wrap")))
+def wait_warping():
+    wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "ant-modal-wrap")))
     
 def no_available_appointments():
     print("no available appointmens func started running")
