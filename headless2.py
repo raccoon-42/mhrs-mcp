@@ -516,7 +516,7 @@ def normalize_to_colon_format(time_str):
     minute = int(parts[1]) if len(parts) > 1 else 0  # default to 0 if minute is missing
 
     return f"{hour:02d}:{minute:02d}"
-
+print
 # both clicks and returns the button
 def select_main_hour_slot(target_clock):
     #input clock=16:20
@@ -537,7 +537,7 @@ def select_sub_hour_slot(target_clock):
     target_clock = normalize_to_colon_format(target_clock)
     #input clock=16:20
     #clickable_clock_buttons = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".ant-collapse-content-active > div")))
-    clickable_clock_buttons = driver.find_elements(By.CSS_SELECTOR, "button.slot-saat-button")
+    clickable_clock_buttons = driver.find_elements(By.CSS_SELECTOR, "div.ant-collapse-content-active button.slot-saat-button")
     print(f"found {len(clickable_clock_buttons)} time slot buttons")
     for button in clickable_clock_buttons:
         print(f"current button is {button.text} and looking for {target_clock}")
@@ -627,7 +627,7 @@ def no_available_appointments():
     button.click()
     wait_loading_screen()
     print("no available appointmens func stopped running")
-    
+
 # Close the browser
 print("Opening website")
 test()
