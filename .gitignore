@@ -1,0 +1,8 @@
+# Ignore everything
+*
+
+# But keep these specific files
+!headless2.py
+!test.py
+!server2.py
+!.gitignore
