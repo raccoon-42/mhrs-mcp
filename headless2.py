@@ -150,15 +150,20 @@ def get_active_appointments():
 
         # Loop through each appointment and store its data
         for appointment in appointments_list:
-            
-            appointment_text = appointment.text  # Get the text of the appointment
+            data = appointment.text.splitlines()
             appointment_data = {
-                "appointment": appointment_text  # Save the text of the appointment in a dictionary
+                "datetime": data[0],
+                "status": data[1],
+                "note": data[2],
+                "hospital": data[3],
+                "department": data[4],
+                "clinic": data[5],
+                "doctor": data[6]
             }
             appointments_data.append(appointment_data)  # Add the appointment data to the list
 
         # Convert the list of appointment data into a JSON string
-        appointments_json = json.dumps(appointments_data, indent=4)
+        appointments_json = json.dumps(appointments_data, ensure_ascii=False, indent=4)
         
         print("Appointments saved to JSON:")
         print(appointments_json)  # Print the JSON string (you can also return or save it)
@@ -533,6 +538,7 @@ def select_sub_hour_slot(target_clock):
     #input clock=16:20
     #clickable_clock_buttons = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".ant-collapse-content-active > div")))
     clickable_clock_buttons = driver.find_elements(By.CSS_SELECTOR, "button.slot-saat-button")
+    print(f"found {len(clickable_clock_buttons)} time slot buttons")
     for button in clickable_clock_buttons:
         print(f"current button is {button.text} and looking for {target_clock}")
         if target_clock in button.text:
@@ -542,18 +548,25 @@ def select_sub_hour_slot(target_clock):
             return button
     return None
 
+import time 
+
 def click_button(button_selector):
-    for _ in range(3):
+    for attempt in range(3):
         try:
-            wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, button_selector)))
+            wait_loading_screen()  # Ensure loading screen is gone first
+
+            # Re-fetch element each time
             button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, button_selector)))
-            wait_loading_screen()
+            
             button.click()
-            print(f"button {button.text} successfully clicked")
-            wait_loading_screen()
+            print(f"[✓] Button '{button.text}' successfully clicked.")
+            
+            wait_loading_screen()  # Wait after click
             break
+
         except Exception as e:
-            print(e)
+            print(f"[!] Attempt {attempt + 1}: {type(e).__name__} - {e}")
+            time.sleep(0.5)
    
 
 def accept_appointment():
