@@ -1,21 +1,20 @@
 from mcp.server.fastmcp import FastMCP
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.service import Service
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.firefox import GeckoDriverManager
 import os
 from dotenv import load_dotenv
-
+import json
 # Load environment variables
 load_dotenv()
 
 # Set up Firefox options for headless mode
-options = Options()
 #options.headless = True  # Enable headless mode
 #options.add_argument("--headless")
+os.environ["webdriver.gecko.driver"] = "/opt/homebrew/bin/geckodriver"
+options = Options()
 
 # Global driver and wait
 driver = None
@@ -33,9 +32,9 @@ is_logged_in = False
 # Set up the driver and WebDriverWait globally
 def initialize_driver():
     global driver, wait
-    driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()), options=options)
+    driver = webdriver.Firefox(options=options)
     driver.get(url)
-    wait = WebDriverWait(driver, 10)  # You can adjust this timeout value as needed
+    wait = WebDriverWait(driver, 30)  # You can adjust this timeout value as needed
 
 def login():
     global is_logged_in
@@ -47,19 +46,15 @@ def login():
 
         password_input = wait.until(EC.presence_of_element_located((By.ID, "LoginForm_password")))
         password_input.send_keys(password)
-
         # Wait until spinner is gone
-        wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "ant-spin-spinning")))
+        wait_loading_screen()
 
         # Now click the login button
-        login_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, ".ant-btn.ant-btn-teal.ant-btn-block")))
-        login_button.click()
-        
+        click_button(".ant-btn.ant-btn-teal.ant-btn-block") #login button selector
+        wait_loading_screen() # wait until loggin in
+        click_button(".ant-modal-confirm-btns > button:nth-child(1)") #neyim var button
         is_logged_in = True
-        neyimvar_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, ".ant-modal-confirm-btns > button:nth-child(1)")))
-        neyimvar_button.click()
         return "Login is successful"
-    
     except Exception as e:
         return f"Error: {e}"
 
@@ -67,39 +62,79 @@ def login():
 @mcp.tool()
 def get_active_appointments():
     """
-    Attempts to list any active appointments.
+    Fetches and returns a list of active appointments for the currently logged-in user from the MHRS system.
 
-    This function navigates through the appointment booking interface via Selenium:
+    This function navigates to the main page of the MHRS website, waits for appointment elements to load,
+    and extracts key information such as date, status, hospital, doctor, and clinic details from each listed appointment.
+    The results are formatted as a JSON string.
 
     Returns:
-        str: Returns a message if any appointment found in json format.
-    
+        str or None: A JSON-formatted string containing the user's active appointment data.
+                     If no appointments are found or an error occurs, returns None and logs the error.
+
+    Example:
+        get_active_appointments()
+
+    Output JSON Structure:
+    [
+        {
+            "datetime": "18.04.2025 13:20",
+            "status": "Randevu Alındı",
+            "note": "MHRS",
+            "hospital": "BERGAMA DEVLET HASTANESİ",
+            "department": "GÖĞÜS HASTALIKLARI",
+            "clinic": "BERGAMA",
+            "doctor": "Uzm. Dr. Ali Konyar"
+        },
+        ...
+    ]
+
     Notes:
-        - Designed to be used within an automated session using Selenium WebDriver.
+        - Assumes the Selenium WebDriver session is active and the user is logged in.
+        - Uses a short wait time (2 seconds) for detecting active appointments.
+        - Prints both the list size and the resulting JSON to console for debugging.
     """
     global is_logged_in
     if not is_logged_in:
         login()
     try:
-        # Use the already initialized driver and wait
-        driver.find_element(By.CSS_SELECTOR, ".ant-list-items li")
-        appointments_list = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".ant-list-items li")))
-
+        driver.get("https://mhrs.gov.tr/vatandas/#/")
+        
+        wait_loading_screen() 
+    
+        appointments_list = WebDriverWait(driver, 2).until(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".ant-list-items li"))
+        )
+        
+        print("appointments_list size:", len(appointments_list))
+        print(appointments_list)
+        # Print out the text of each appointment
         appointments_data = []  # List to store all appointment data
 
         # Loop through each appointment and store its data
         for appointment in appointments_list:
-            appointment_text = appointment.text  # Get the text of the appointment
+            data = appointment.text.splitlines()
             appointment_data = {
-                "appointment": appointment_text  # Save the text of the appointment in a dictionary
+                "datetime": data[0],
+                "status": data[1],
+                "note": data[2],
+                "hospital": data[3],
+                "department": data[4],
+                "clinic": data[5],
+                "doctor": data[6]
             }
             appointments_data.append(appointment_data)  # Add the appointment data to the list
 
         # Convert the list of appointment data into a JSON string
-        return appointments_data  # Return the list of appointments
-    
+        appointments_json = json.dumps(appointments_data, ensure_ascii=False, indent=4)
+        
+        print("Appointments saved to JSON:")
+        print(appointments_json)  # Print the JSON string (you can also return or save it)
+        
+        return appointments_json  # Return the JSON string
     except Exception as e:
-        return f"Could not locate any active appointments.\nError: {e}"
+        print("Cannot find any active appointments.")
+       
 
 @mcp.tool()
 def list_available_doctors(city_name, town_name, clinic, hospital):

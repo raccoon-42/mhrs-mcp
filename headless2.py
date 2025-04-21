@@ -34,8 +34,23 @@ driver.get(url)
 print("Waiting for driver")
 wait = WebDriverWait(driver, 30)
 
+is_logged_in = False
+
 def test():
-    def login():
+    # ?
+    #click_button(".ant-modal-confirm-btns > button:nth-child(1)") #neyim var button
+
+    #wait_warping() # did not work
+    
+    print("trying to get active appointments")
+    get_active_appointments()
+    #print("trying to cancel an appointments")
+    #cancel_appointment("eylem")
+    #print("run cancel app func")
+    
+    #revert_appointment("eylem")
+def login():
+        global is_logged_in
         username_input = wait.until(EC.presence_of_element_located((By.ID, "LoginForm_username")))
         username_input.send_keys(username)
         print("Entered username")
@@ -51,32 +66,9 @@ def test():
         click_button(".ant-btn.ant-btn-teal.ant-btn-block") #login button selector
         print("Login button clicked")
         wait_loading_screen() # wait until loggin in
-    
-    login()
-    # ?
-    click_button(".ant-modal-confirm-btns > button:nth-child(1)") #neyim var button
-    print("neyim var button clicked to refuse")
-    
-    print("----------------------------------")
-    print("TESTING")
-   
-    print("----------------------------------")
-    list_available_doctors("İZMİR", "URLA", "CİLDİYE", "URLA")
-    print("----------------------------------")
-    list_available_appointment_hours("eylem", "30.04.2025")
-    print("----------------------------------")
-    book_appointment("11.40")
-
-
-    #wait_warping() # did not work
-    
-    print("trying to get active appointments")
-    get_active_appointments()
-    #print("trying to cancel an appointments")
-    cancel_appointment("eylem")
-    #print("run cancel app func")
-    
-    revert_appointment("eylem")
+        click_button(".ant-modal-confirm-btns > button:nth-child(1)") #neyim var button
+        print("neyim var button clicked to refuse")
+        is_logged_in = True
     
     
 def search_doctor(doctor_name):
@@ -220,6 +212,10 @@ def get_active_appointments():
         - Uses a short wait time (2 seconds) for detecting active appointments.
         - Prints both the list size and the resulting JSON to console for debugging.
     """
+    global is_logged_in
+    if not is_logged_in:
+        login()
+        
     try:
         driver.get("https://mhrs.gov.tr/vatandas/#/")
         
