@@ -43,7 +43,9 @@ def test():
     #wait_warping() # did not work
     
     print("trying to get active appointments")
-    get_active_appointments()
+    list_available_doctors("İZMİR", "URLA", "CİLDİYE", "URLA")
+    list_available_appointment_dates_for_a_doctor("eylem")
+    list_available_appointment_hours("30.04.2025")
     #print("trying to cancel an appointments")
     #cancel_appointment("eylem")
     #print("run cancel app func")
@@ -69,7 +71,11 @@ def login():
         click_button(".ant-modal-confirm-btns > button:nth-child(1)") #neyim var button
         print("neyim var button clicked to refuse")
         is_logged_in = True
-    
+
+def check_login():
+    global is_logged_in
+    if not is_logged_in:
+        login()
     
 def search_doctor(doctor_name):
     if not select_doctor(doctor_name):
@@ -103,6 +109,8 @@ def cancel_appointment(appointment_identifier):
         - Uses class selectors to click the Cancel, Confirm, and OK buttons in sequence.
         - Relies on appointment text containing the given identifier.
     """
+    check_login()
+    
     appointment_identifier = normalize_string_to_lower(appointment_identifier)
     print(f"executing cancel appointment func for identifier {appointment_identifier}")
     try:
@@ -154,6 +162,8 @@ def revert_appointment(appointment_identifier):
         - Designed for UI flows where appointments may be reverted via a confirm dialog.
         - Matching is done using substring matching inside appointment text.
     """
+    check_login()
+    
     appointment_identifier = normalize_string_to_lower(appointment_identifier)
     print(f"executing revert appointment func for identifier {appointment_identifier}")
     # navigate to mainpage
@@ -212,10 +222,8 @@ def get_active_appointments():
         - Uses a short wait time (2 seconds) for detecting active appointments.
         - Prints both the list size and the resulting JSON to console for debugging.
     """
-    global is_logged_in
-    if not is_logged_in:
-        login()
-        
+    check_login()
+    
     try:
         driver.get("https://mhrs.gov.tr/vatandas/#/")
         
@@ -281,6 +289,8 @@ def list_available_doctors(city_name, town_name, clinic, hospital):
         - Uses `wait_loading_screen()` and WebDriverWait to handle dynamic content loading.
         - Does not select a doctor or attempt to book; only lists available options.
     """
+    check_login()
+    
     wait_loading_screen()
 
     wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "ant-modal-wrap")))
@@ -301,11 +311,11 @@ def list_available_doctors(city_name, town_name, clinic, hospital):
     click_on_appointment_search_button()
 
     if check_if_any_available_appointment():
-        fetch_all_available_doctor_names()
+        return fetch_all_available_doctor_names()
     else:
         return f"There are no available appointments to book for clinic {clinic}."
     
-def list_available_appointment_hours(doctor_name, appointment_date):
+def list_available_appointment_hours(appointment_date):
     """
     Lists all available appointment hours for a given doctor on a specific date.
 
@@ -330,19 +340,23 @@ def list_available_appointment_hours(doctor_name, appointment_date):
         - Uses `fetch_available_appointment_dates()` and `select_day()` to find valid dates.
         - Uses `list_all_available_hours_of_a_day()` to print time slots for the selected date.
     """
-    if not select_doctor(doctor_name):
-        return f"Could not find the doctor you are looking for: {doctor_name}"
+    check_login()
     
-    days = fetch_available_appointment_dates()
-
-    day = select_day(appointment_date, days)
+    day = select_day(appointment_date)
     if not day:
         return f"Could not find available appointments on the date you are looking for: {appointment_date}"
     
     click_on_a_day(day)
     
     #list_all_available_hours_of_a_day(day)
-    list_all_available_hours_of_a_day()
+    return fetch_all_available_time_slots_of_a_day()
+
+def list_available_appointment_dates_for_a_doctor(doctor_name):
+    check_login()
+    if not select_doctor(doctor_name):
+        return f"Could not find the doctor you are looking for: {doctor_name}"
+    
+    return fetch_available_appointment_dates()
     
 def book_appointment(appointment_hour):
     """
@@ -367,6 +381,8 @@ def book_appointment(appointment_hour):
         - Uses `select_main_hour_slot()` and `select_sub_hour_slot()` to find and select time.
         - Calls `accept_appointment()` only if the desired time slot is still available.
     """
+    check_login()
+    
     select_main_hour_slot(appointment_hour)
     if not select_sub_hour_slot(appointment_hour):
         print("Appointment booked by somebody else. Please choose another time slot.")
@@ -545,13 +561,26 @@ def fetch_all_available_doctor_names():
     
     # Find all <li> elements under the <ul> element
     li_elements = ul_element.find_elements(By.TAG_NAME, "li")
+    doctor_data = []
     
     # Print the text of each <li> element
     for li in li_elements:
-        print(li.text)
-    
+        lines = li.text.strip().splitlines()
+        doctor_info = {
+                "doctor": lines[0],
+                "earliest_date": lines[2],
+                "days_left": lines[3],
+                "hospital": lines[4],
+                "department": lines[5],
+                "clinic": lines[6]
+            }
+        doctor_data.append(doctor_info)
+        
+    doctors_json = json.dumps(doctor_data, ensure_ascii=False, indent=4)
+    print("Doctors (JSON):")
+    print(doctors_json)
     # Return the list of <li> elements
-    return li_elements
+    return doctors_json
 
 def select_doctor(doctor_name):
     print("trying to select a doctor")
@@ -596,15 +625,26 @@ def fetch_available_appointment_dates():
     
     print(f"Found {len(date_divs)} date divs inside the parent container.")
 
+    available_dates_data = []
     # Iterate over each date div and print or interact with the content
     for date_div in date_divs:
-        print(f"Appointment Date: {date_div.text}")
-    
-    # Optionally return the div elements if you need to interact further
-    return date_divs
+        date_info = {
+            "date": date_div.text.strip()
+        }
+        available_dates_data.append(date_info)
 
-def select_day(day, date_divs):
+    dates_json = json.dumps(available_dates_data, ensure_ascii=False, indent=4)    
+    print("DATES JSON:")
+    print(dates_json)
+    # Optionally return the div elements if you need to interact further
+    return dates_json
+
+def select_day(day):
     print("selecting day")
+    parent_div_selector = "div.ant-tabs:nth-child(3) > div:nth-child(1) > div:nth-child(1) > div:nth-child(3) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1)"
+    parent_div = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, parent_div_selector)))
+    date_divs = parent_div.find_elements(By.CSS_SELECTOR, "div > div")  # Adjust the selector as needed
+    
     target_day = day.strip().lower()
     for date_div in date_divs:
         normalized_date = date_div.text.lower()
@@ -614,7 +654,8 @@ def select_day(day, date_divs):
     print(f"Could not find available appointments on the date you are looking for: {day}")
     return None
 
-def list_all_available_hours_of_a_day():
+
+def fetch_all_available_time_slots_of_a_day():
     # Wait for all the divs inside .ant-tabs-tabpane to be present
     wait_loading_screen()
     
@@ -623,27 +664,40 @@ def list_all_available_hours_of_a_day():
     print(f"Found {len(clock_divs)} tab pane divs.")
     wait_loading_screen()
     
+    full_hour_data = []
     # Iterate over each tab pane div and print or interact with the content
     for clock_div in clock_divs:
+        main_hour_data = clock_div.text
         print(f"Tab content: {clock_div.text}")
-        #clock_divs = tab.find_elements(By.CSS_SELECTOR, "div > div")
-        #print(f"found {len(clock_divs)} clock divs inside of this parent container")
-        #for clock_div in clock_divs:
-         #   print(f"clock div: {clock_div.text}")
-        click_on_a_clock_and_list_details(clock_div)
+        sub_hour_data = click_on_a_clock_and_list_details(clock_div)
+        
+        full_hour_info = {
+            "main_hour": main_hour_data,    
+            "sub_hours": sub_hour_data
+        }
+        full_hour_data.append(full_hour_info)
     
+    full_hour_JSON = json.dumps(full_hour_data, ensure_ascii=False, indent=4)
+    print("full hour JSON:")
+    print(full_hour_JSON)
     # Optionally, return the div elements if you need to interact further
-    return clock_divs
+    return full_hour_JSON
 
 def click_on_a_clock_and_list_details(clock_div):
     wait_loading_screen()
     clock_div.click()
     print(f"clicked on clock {clock_div.text.strip().split()[0]}")
     
+    sub_hour_data = []
     clickable_buttons = clock_div.find_elements(By.CSS_SELECTOR, "div > button")
     for button in clickable_buttons:
+        sub_hour_slot = {
+            "sub_hour": button.text
+        }
         print(f"button text is {button.text}")
-
+        sub_hour_data.append(sub_hour_slot)
+    
+    return sub_hour_data
 
 def click_on_a_day(day):
     print("trying to click on day")
@@ -669,7 +723,7 @@ def normalize_to_colon_format(time_str):
     minute = int(parts[1]) if len(parts) > 1 else 0  # default to 0 if minute is missing
 
     return f"{hour:02d}:{minute:02d}"
-print
+
 # both clicks and returns the button
 def select_main_hour_slot(target_clock):
     #input clock=16:20
