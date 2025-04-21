@@ -73,10 +73,10 @@ def test():
     print("trying to get active appointments")
     get_active_appointments()
     #print("trying to cancel an appointments")
-    #cancel_appointment("eylem")
+    cancel_appointment("eylem")
     #print("run cancel app func")
     
-    #revert_appointment("eylem")
+    revert_appointment("eylem")
     
     
 def search_doctor(doctor_name):
@@ -84,6 +84,33 @@ def search_doctor(doctor_name):
         return f"Could not find the doctor you are looking for: {doctor_name}"
 
 def cancel_appointment(appointment_identifier):
+    """
+    Cancels an existing appointment that matches the given identifier string.
+
+    This function navigates to the MHRS main page (if not already there), searches through
+    the user's active appointments, and attempts to cancel the one that matches the provided
+    identifier (e.g., doctor name, clinic name, or any unique substring in the appointment text).
+    It performs confirmation steps to complete the cancellation.
+
+    Args:
+        appointment_identifier (str): A string used to identify the appointment to cancel,
+                                       e.g., a doctor's name like "eylem" or part of the appointment text.
+
+    Returns:
+        bool or str:
+            - Returns True if the appointment was successfully cancelled.
+            - Returns False if no matching appointment is found.
+            - Returns a message string if an exception occurs (e.g., no appointments exist).
+
+    Example:
+        cancel_appointment("eylem")
+
+    Notes:
+        - Uses `normalize_string_to_lower()` for case-insensitive matching.
+        - Assumes the user is already logged in and the Selenium driver is active.
+        - Uses class selectors to click the Cancel, Confirm, and OK buttons in sequence.
+        - Relies on appointment text containing the given identifier.
+    """
     appointment_identifier = normalize_string_to_lower(appointment_identifier)
     print(f"executing cancel appointment func for identifier {appointment_identifier}")
     try:
@@ -108,7 +135,33 @@ def cancel_appointment(appointment_identifier):
         return "You don't have any appointments to cancel."
    
 
-def revert_appointment(appointment_identifier):    
+def revert_appointment(appointment_identifier):
+    """
+    Reverts a pending or recently modified appointment that matches the given identifier.
+
+    This function navigates to the MHRS main page, searches for appointments containing the
+    provided identifier string (e.g., doctor's name), and performs a revert action if a match is found.
+    It clicks the necessary confirmation buttons to finalize the revert.
+
+    Args:
+        appointment_identifier (str): A string used to identify the appointment to revert,
+                                       such as a doctor's name, clinic, or any unique substring.
+
+    Returns:
+        bool or str:
+            - Returns True if the revert action was successful.
+            - Returns False if no matching appointment is found.
+            - Returns a string message if an exception occurs or if no revertable appointment exists.
+
+    Example:
+        revert_appointment("eylem")
+
+    Notes:
+        - Performs case-insensitive matching using `normalize_string_to_lower()`.
+        - Assumes a valid, logged-in Selenium session.
+        - Designed for UI flows where appointments may be reverted via a confirm dialog.
+        - Matching is done using substring matching inside appointment text.
+    """
     appointment_identifier = normalize_string_to_lower(appointment_identifier)
     print(f"executing revert appointment func for identifier {appointment_identifier}")
     # navigate to mainpage
@@ -134,6 +187,39 @@ def revert_appointment(appointment_identifier):
   
 
 def get_active_appointments():
+    """
+    Fetches and returns a list of active appointments for the currently logged-in user from the MHRS system.
+
+    This function navigates to the main page of the MHRS website, waits for appointment elements to load,
+    and extracts key information such as date, status, hospital, doctor, and clinic details from each listed appointment.
+    The results are formatted as a JSON string.
+
+    Returns:
+        str or None: A JSON-formatted string containing the user's active appointment data.
+                     If no appointments are found or an error occurs, returns None and logs the error.
+
+    Example:
+        get_active_appointments()
+
+    Output JSON Structure:
+    [
+        {
+            "datetime": "18.04.2025 13:20",
+            "status": "Randevu Alındı",
+            "note": "MHRS",
+            "hospital": "BERGAMA DEVLET HASTANESİ",
+            "department": "GÖĞÜS HASTALIKLARI",
+            "clinic": "BERGAMA",
+            "doctor": "Uzm. Dr. Ali Konyar"
+        },
+        ...
+    ]
+
+    Notes:
+        - Assumes the Selenium WebDriver session is active and the user is logged in.
+        - Uses a short wait time (2 seconds) for detecting active appointments.
+        - Prints both the list size and the resulting JSON to console for debugging.
+    """
     try:
         driver.get("https://mhrs.gov.tr/vatandas/#/")
         
@@ -174,6 +260,31 @@ def get_active_appointments():
     
 
 def list_available_doctors(city_name, town_name, clinic, hospital):
+    """
+    Lists available doctors for a given location and clinic on the MHRS system.
+
+    This function automates the process of navigating to the general appointment search page,
+    selects the specified city, district, clinic, and hospital, and initiates a search to check
+    for available appointment slots. If available, it fetches and prints the list of doctors.
+
+    Args:
+        city_name (str): Name of the city/province (e.g., "İZMİR")
+        town_name (str): Name of the district/town (e.g., "URLA")
+        clinic (str): Name or partial name of the clinic (e.g., "CİLDİYE")
+        hospital (str): Name or partial name of the hospital (e.g., "URLA")
+
+    Returns:
+        str or None: A message if there are no available appointments, otherwise prints available doctors
+        and returns None.
+
+    Example:
+        list_available_doctors("İZMİR", "URLA", "CİLDİYE", "URLA")
+
+    Notes:
+        - Assumes the user is already logged in via Selenium session.
+        - Uses `wait_loading_screen()` and WebDriverWait to handle dynamic content loading.
+        - Does not select a doctor or attempt to book; only lists available options.
+    """
     wait_loading_screen()
 
     wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "ant-modal-wrap")))
@@ -199,6 +310,30 @@ def list_available_doctors(city_name, town_name, clinic, hospital):
         return f"There are no available appointments to book for clinic {clinic}."
     
 def list_available_appointment_hours(doctor_name, appointment_date):
+    """
+    Lists all available appointment hours for a given doctor on a specific date.
+
+    This function attempts to locate the specified doctor in the available appointment list,
+    then fetches all available appointment dates. If the target date is found, it clicks on that day
+    and lists all available time slots.
+
+    Args:
+        doctor_name (str): The name (or part of the name) of the doctor to search for (e.g., "eylem")
+        appointment_date (str): The desired appointment date in "DD.MM.YYYY" format (e.g., "30.04.2025")
+
+    Returns:
+        str or None: Returns an error message string if the doctor or date is not found,
+                     otherwise prints available time slots to the console and returns None.
+
+    Example:
+        list_available_appointment_hours("eylem", "30.04.2025")
+
+    Notes:
+        - Assumes clinic search and available appointments list are already displayed.
+        - Requires an active Selenium session and prior login.
+        - Uses `fetch_available_appointment_dates()` and `select_day()` to find valid dates.
+        - Uses `list_all_available_hours_of_a_day()` to print time slots for the selected date.
+    """
     if not select_doctor(doctor_name):
         return f"Could not find the doctor you are looking for: {doctor_name}"
     
@@ -214,6 +349,28 @@ def list_available_appointment_hours(doctor_name, appointment_date):
     list_all_available_hours_of_a_day()
     
 def book_appointment(appointment_hour):
+    """
+    Attempts to book an appointment at the specified hour.
+
+    This function first selects the main hour block (e.g., "11") and then tries to select
+    the specific sub-hour slot (e.g., "11:40"). If the slot is no longer available, it logs a message.
+    If the slot is successfully selected, the function proceeds to confirm the appointment.
+
+    Args:
+        appointment_hour (str): The target appointment time in "HH:MM" format (e.g., "11:40")
+
+    Returns:
+        None
+
+    Example:
+        book_appointment("11:40")
+
+    Notes:
+        - Assumes that appointment date, doctor, and clinic have already been selected.
+        - Assumes a logged-in Selenium session and that available appointment slots are visible.
+        - Uses `select_main_hour_slot()` and `select_sub_hour_slot()` to find and select time.
+        - Calls `accept_appointment()` only if the desired time slot is still available.
+    """
     select_main_hour_slot(appointment_hour)
     if not select_sub_hour_slot(appointment_hour):
         print("Appointment booked by somebody else. Please choose another time slot.")
