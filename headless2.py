@@ -43,8 +43,8 @@ def test():
     #wait_warping() # did not work
     
     print("trying to get active appointments")
-    list_available_doctors("İZMİR", "URLA", "CİLDİYE", "URLA")
-    list_available_appointment_dates_for_a_doctor("eylem")
+    list_available_doctors("İZMİR", "URLA", "PSİKİYATRİ", "URLA")
+    list_available_appointment_dates_for_a_doctor("özge")
     list_available_appointment_hours("30.04.2025")
     #print("trying to cancel an appointments")
     #cancel_appointment("eylem")
@@ -63,12 +63,16 @@ def login():
         # Wait until spinner is gone
         print("Waiting for button to become clickable")
         wait_loading_screen()
-
+        print("spinner gone")
         # Now click the login button
-        click_button(".ant-btn.ant-btn-teal.ant-btn-block") #login button selector
+        click_button("button.ant-btn-teal:nth-child(1)") #login button selector
+        
+        wait_loading_screen()  # Wa
         print("Login button clicked")
         wait_loading_screen() # wait until loggin in
         click_button(".ant-modal-confirm-btns > button:nth-child(1)") #neyim var button
+        wait_loading_screen() # wait until loggin in
+
         print("neyim var button clicked to refuse")
         is_logged_in = True
 
@@ -313,6 +317,7 @@ def list_available_doctors(city_name, town_name, clinic, hospital):
     if check_if_any_available_appointment():
         return fetch_all_available_doctor_names()
     else:
+        print(f"There are no available appointments to book for clinic {clinic}.")
         return f"There are no available appointments to book for clinic {clinic}."
     
 def list_available_appointment_hours(appointment_date):
@@ -761,13 +766,7 @@ def click_button(button_selector):
     for attempt in range(3):
         try:
             wait_loading_screen()  # Ensure loading screen is gone first
-
-            # Re-fetch element each time
-            button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, button_selector)))
-            
-            button.click()
-            print(f"[✓] Button '{button.text}' successfully clicked.")
-            
+            wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, button_selector))).click()
             wait_loading_screen()  # Wait after click
             break
 

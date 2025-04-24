@@ -746,25 +746,17 @@ def select_sub_hour_slot(target_clock):
             return button
     return None
 
-
 def click_button(button_selector):
     for attempt in range(3):
         try:
             wait_loading_screen()  # Ensure loading screen is gone first
-
-            # Re-fetch element each time
-            button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, button_selector)))
-            
-            button.click()
-            print(f"[✓] Button '{button.text}' successfully clicked.")
-            
+            wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, button_selector))).click()
             wait_loading_screen()  # Wait after click
             break
 
         except Exception as e:
             print(f"[!] Attempt {attempt + 1}: {type(e).__name__} - {e}")
             time.sleep(0.5)
-   
 
 def accept_appointment():
     print("executing accept_appointment func")
