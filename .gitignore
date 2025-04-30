@@ -14,5 +14,5 @@ __pycache__
 !utils/
 !utils/**
 
-core//pycache/
-utils//pycache/
+core/__pycache__/
+utils/__pycache__/
