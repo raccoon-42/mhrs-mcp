@@ -1,8 +1,6 @@
 # Ignore everything
 *
 
-__pycache__
-
 # Unignore the .gitignore file itself
 !.gitignore
 !requirements.txt

@@ -14,8 +14,7 @@ def select_city(city_name):
     try:
         # Select the div container for the city dropdown
         browser.wait_loading_screen()
-        city_selection = browser.wait.until(EC.element_to_be_clickable((By.ID, 'il-tree-select')))
-        city_selection.click()
+        city_selection = browser.wait.until(EC.element_to_be_clickable((By.ID, 'il-tree-select'))).click()
         browser.wait_loading_screen()
 
         # Find list items within the dropdown
@@ -43,8 +42,7 @@ def select_ilce(town_name):
     try:
         # Select the div container for the town dropdown
         browser.wait_loading_screen()
-        town_selection = browser.wait.until(EC.element_to_be_clickable((By.ID, 'randevuAramaForm_ilce')))
-        town_selection.click()
+        town_selection = browser.wait.until(EC.element_to_be_clickable((By.ID, 'randevuAramaForm_ilce'))).click()
         browser.wait_loading_screen()
 
         # Find list items within the dropdown
@@ -71,8 +69,7 @@ def select_clinic(clinic_name):
     try:
         # Select the div container for the clinic dropdown
         browser.wait_loading_screen()
-        clinic_selection = browser.wait.until(EC.element_to_be_clickable((By.ID, 'klinik-tree-select')))
-        clinic_selection.click()
+        clinic_selection = browser.wait.until(EC.element_to_be_clickable((By.ID, 'klinik-tree-select'))).click()
         browser.wait_loading_screen()
 
         # Find list items within the dropdown
@@ -102,8 +99,7 @@ def select_hospital(hospital_name):
     try:
         # Set the hospital dropdown to be focused
         browser.wait_loading_screen()
-        hospital_selection = browser.wait.until(EC.element_to_be_clickable((By.ID, 'hastane-tree-select')))
-        hospital_selection.click()
+        hospital_selection = browser.wait.until(EC.element_to_be_clickable((By.ID, 'hastane-tree-select'))).click()
         browser.wait_loading_screen()
 
         # Find list items within the dropdown

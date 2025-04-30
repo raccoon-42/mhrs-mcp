@@ -6,7 +6,7 @@ from utils.string_utils import normalize_string_to_lower
 from core.clients.auth_client import AuthClient
 
 browser = BrowserClient()
-client = AuthClient()
+auth_client = AuthClient()
 
 def accept_appointment():
     print("executing accept_appointment func")
@@ -22,8 +22,26 @@ def accept_appointment():
         print("appointment VERIFY button successfully clicked")
         
     verify_appointment()
-    browser.click_button(".ant-modal-confirm-btns > button:nth-child(1)") # ok button
-    browser.wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "ant-modal-wrap")))
+    force_appointment()
+
+def has_successfully_booked_appointment():
+    success_code = "RND5036"
+    div_selector = ".ant-modal-confirm > div:nth-child(2)"
+    try:
+        element = browser.driver.find_element(By.CSS_SELECTOR, div_selector)
+        if success_code in element.text:
+            #click ok
+            ok_button_selector = ".ant-modal-confirm-btns > button:nth-child(1)"
+            browser.click_button(ok_button_selector)
+            print("successfully booked appointment")
+            return "Appointment booking is successful!"
+        else:
+            print("failed to book appointment")
+            return "Failed to book appointment."
+    except Exception as e:
+        print("failed to book appointment with error", e)
+        return "Failed to book appointment."
+
 
 def reject_appointment():
     print("executing reject_appointment func")
@@ -31,20 +49,27 @@ def reject_appointment():
     browser.click_button(button_selector)
     print("appointment REJECT button successfully clicked")
 
-def has_exceeded_max_appointments():
+# if exceeded max appointment    count, enforce replacement appointment taking
+def force_appointment():
+    randevu_degistirme_pop_up_code = "RND5015"
     exceeded_max_app_count_pop_up_selector = "div.ant-modal-body:nth-child(2)"
     try:
-        browser.driver.find_element(By.CSS_SELECTOR, exceeded_max_app_count_pop_up_selector)
-        # assume pop up appeared
-        ok_button_selector = ".ant-modal-confirm-btns > button:nth-child(1)"
-        browser.click_button(ok_button_selector)
-        print("clicked ok on max app count exceeded button")
-        return True
+        element = browser.driver.find_element(By.CSS_SELECTOR, exceeded_max_app_count_pop_up_selector)
+        if randevu_degistirme_pop_up_code in element.text:
+            print("found text", element.text)
+            ok_button_selector = ".ant-modal-confirm-btns > button:nth-child(2)"
+            browser.click_button(ok_button_selector)
+            return True
+        else:
+            print("max count exceeded pop up did not appear")
+            return False
     except Exception:
         print("max count exceeded pop up did not appear")
         return False
 
 def cancel_appointment(appointment_identifier):
+    auth_client.check_login()
+    
     """
     Cancels an existing appointment that matches the given identifier string.
 
@@ -68,26 +93,26 @@ def cancel_appointment(appointment_identifier):
     print(f"executing cancel appointment func for identifier {appointment_identifier}")
     try:
     # navigate to mainpage
-        if not browser.driver.current_url == "https://mhrs.gov.tr/vatandas/#/":
-            browser.driver.get("https://mhrs.gov.tr/vatandas/#/")
+        browser.driver.get("https://mhrs.gov.tr/vatandas/#/")
             
         browser.driver.find_element(By.CSS_SELECTOR, ".ant-list-items")
         
         appointments = browser.driver.find_elements(By.CSS_SELECTOR, ".ant-list-items li")
         browser.wait_loading_screen()
         for appointment in appointments:
-            if appointment_identifier in normalize_string_to_lower(appointment.text):
+            if appointment_identifier in normalize_string_to_lower(appointment.text) and "Geri Alınabilir Randevu" not in appointment.text:
                 browser.click_button(".ant-btn-danger") # cancel button
                 browser.click_button(".ant-btn-primary") # verify button
                 browser.click_button(".ant-btn-primary") # ok button
                 return True
         return False
-    except Exception as e:
+    except Exception as e:  
         print(e)
-        print("You don't have any appointments to cancel.")
-        return "You don't have any appointments to cancel."
+        return f"You don't have any appointments to cancel for identifier {appointment_identifier}."
 
 def revert_appointment(appointment_identifier):
+    auth_client.check_login()
+    
     """
     Reverts a pending or recently modified appointment that matches the given identifier.
 
@@ -111,8 +136,7 @@ def revert_appointment(appointment_identifier):
     # navigate to mainpage
     
     try:
-        if not browser.driver.current_url == "https://mhrs.gov.tr/vatandas/#/":
-            browser.driver.get("https://mhrs.gov.tr/vatandas/#/")
+        browser.driver.get("https://mhrs.gov.tr/vatandas/#/")
             
         browser.driver.find_element(By.CSS_SELECTOR, ".ant-list-items")
         
@@ -126,8 +150,7 @@ def revert_appointment(appointment_identifier):
         return False
     except Exception as e:
         print(e)
-        print("You dont have any revertable appointments.")
-        return "You don't have any revertable appointments, sorry :/"
+        return f"You don't have any revertable appointments for identifier {appointment_identifier}, sorry :/"
 
 def get_active_appointments():
     """
@@ -137,7 +160,7 @@ def get_active_appointments():
         str or None: A JSON-formatted string containing the user's active appointment data.
                      If no appointments are found or an error occurs, returns None and logs the error.
     """
-    client.check_login()
+    auth_client.check_login()
     print("logged in")
         
     try:
@@ -146,6 +169,7 @@ def get_active_appointments():
         
         browser.wait_loading_screen() 
     
+        browser.driver.find_element(By.CSS_SELECTOR, ".ant-list-items li")
         appointments_list = browser.wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".ant-list-items li")))
         
         print("appointments_list size:", len(appointments_list))

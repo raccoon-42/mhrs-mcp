@@ -13,8 +13,9 @@ from core.services.user_service import (
     select_main_hour_slot, select_sub_hour_slot
 )
 from core.services.appointment_service import (
-    accept_appointment, reject_appointment, has_exceeded_max_appointments,
-    cancel_appointment, revert_appointment, get_active_appointments
+    accept_appointment, reject_appointment, force_appointment,
+    cancel_appointment, revert_appointment, get_active_appointments,
+    has_successfully_booked_appointment
 )
 from core.clients.browser_client import BrowserClient
 
@@ -117,6 +118,7 @@ def get_active_appointments_tool():
     return get_active_appointments()
 
 def list_available_doctors(city_name, town_name, clinic, hospital):
+    auth_client.check_login()
     """
     Lists available doctors for a given location and clinic on the MHRS system.
 
@@ -144,6 +146,7 @@ def list_available_doctors(city_name, town_name, clinic, hospital):
     """
     print(f"list_available_doctors city={city_name}, town={town_name}, clinic={clinic}, hospital={hospital}")
     browser.genel_randevu_arama()
+    browser.wait_warping() #works
     if select_city(city_name) and select_ilce(town_name) and select_clinic(clinic) and select_hospital(hospital):
         print("PASS")
         click_on_appointment_search_button()
@@ -240,10 +243,8 @@ def book_appointment(appointment_hour):
     """
     
     if select_main_hour_slot(appointment_hour) and select_sub_hour_slot(appointment_hour):
-        if has_exceeded_max_appointments():
-            return "You have exceeded the maximum number of appointments"
         accept_appointment()
-        return f"Successfully booked appointment at {appointment_hour}"
+        return has_successfully_booked_appointment()
     return f"Could not book appointment at {appointment_hour}"
 
 def list_available_appointment_dates_for_a_doctor(doctor_name):
@@ -254,6 +255,7 @@ def list_available_appointment_dates_for_a_doctor(doctor_name):
     return fetch_available_appointment_dates()
 
 def list_available_appointment_hours(appointment_date):
+    auth_client.check_login()
     """
     Lists all available appointment hours for a given doctor on a specific date.
 
@@ -278,7 +280,6 @@ def list_available_appointment_hours(appointment_date):
         - Uses `fetch_available_appointment_dates()` and `select_day()` to find valid dates.
         - Uses `list_all_available_hours_of_a_day()` to print time slots for the selected date.
     """
-    auth_client.check_login()
     
     day = select_day(appointment_date)
     if not day:
@@ -293,9 +294,12 @@ if __name__ == "__main__":
     """
     Runs the MCP server for handling appointment-related requests.
     """
-    print("MHRS appointment server is running...")
-    get_active_appointments()
+    print("MHRS appointment server is ru ning...")
     list_available_doctors("İZMİR", "URLA", "CİLDİYE", "URLA")
     list_available_appointment_dates_for_a_doctor("eylem")
-    #list_available_appointment_hours("06.05.2025")
-    #book_appointment("13.20")
+    list_available_appointment_hours("09.05.2025")
+    print(book_appointment("15.40"))
+    #browser.wait_warping()
+    #print(cancel_appointment_tool("eylem")) #works
+    print(revert_appointment_tool("eylem")) #works
+    
