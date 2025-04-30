@@ -1,8 +1,12 @@
 # Ignore everything
 *
 
-# But keep these specific files
-!headless2.py
-!test.py
-!server2.py
+# Unignore the .gitignore file itself
 !.gitignore
+
+# Unignore the core/ and utils/ folders and their contents
+!core/
+!core/**
+
+!utils/
+!utils/**
