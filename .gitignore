@@ -1,8 +1,11 @@
 # Ignore everything
 *
 
+__pycache__
+
 # Unignore the .gitignore file itself
 !.gitignore
+!requirements.txt
 
 # Unignore the core/ and utils/ folders and their contents
 !core/
@@ -10,3 +13,6 @@
 
 !utils/
 !utils/**
+
+core//pycache/
+utils//pycache/
