@@ -158,7 +158,7 @@ def fetch_all_available_doctor_names():
                     "hospital": lines[4],
                     "department": lines[5],
                     "clinic": lines[6]
-                }
+            }
             doctor_data.append(doctor_info)
             
         doctors_json = json.dumps(doctor_data, ensure_ascii=False, indent=4)
@@ -168,7 +168,8 @@ def fetch_all_available_doctor_names():
         return doctors_json
     except Exception as e:
         print(f"Error fetching doctor names: {e}")
-        return json.dumps([], ensure_ascii=False)
+        return False
+        #return json.dumps([], ensure_ascii=False)
 
 def select_doctor(doctor_name):
     try:

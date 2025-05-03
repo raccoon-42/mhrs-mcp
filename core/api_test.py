@@ -5,23 +5,22 @@ import os
 # Add the project root to the path to fix imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.clients.auth_client import AuthClient
-from core.services.user_service import (
-    select_city, select_ilce, select_clinic, select_hospital, 
-    click_on_appointment_search_button, fetch_all_available_doctor_names,
-    select_doctor, fetch_available_appointment_dates, 
-    select_day, click_on_a_day, fetch_all_available_time_slots_of_a_day,
-    select_main_hour_slot, select_sub_hour_slot
-)
+
 from core.services.appointment_service import (
-    accept_appointment, reject_appointment, force_appointment,
     cancel_appointment, revert_appointment, get_active_appointments,
-    has_successfully_booked_appointment
+    appointment_doctor_available,
+    appointment_doctor_available_dates,
+    appointment_available_hours_on,
+    appointment_book_time,
 )
 from core.clients.browser_client import BrowserClient
 
 auth_client = AuthClient()
 browser = BrowserClient()
 
+mcp = FastMCP("mhrs")
+
+@mcp.tool()
 def cancel_appointment_tool(appointment_identifier):
     """
     Cancels an existing appointment that matches the given identifier string.
@@ -52,6 +51,7 @@ def cancel_appointment_tool(appointment_identifier):
     """
     return cancel_appointment(appointment_identifier)
    
+@mcp.tool()
 def revert_appointment_tool(appointment_identifier):
     """
     Reverts a pending or recently modified appointment that matches the given identifier.
@@ -80,7 +80,8 @@ def revert_appointment_tool(appointment_identifier):
         - Matching is done using substring matching inside appointment text.
     """
     return revert_appointment(appointment_identifier)
-  
+
+@mcp.tool()
 def get_active_appointments_tool():
     """
     Fetches and returns a list of active appointments for the currently logged-in user from the MHRS system.
@@ -117,189 +118,67 @@ def get_active_appointments_tool():
     """
     return get_active_appointments()
 
-def list_available_doctors(city_name, town_name, clinic, hospital):
-    auth_client.check_login()
-    """
-    Lists available doctors for a given location and clinic on the MHRS system.
+@mcp.tool()
+def appointment_book_tool(city="İZMİR", district="URLA", specialty="CİLDİYE", hospital="URLA", doctor_name="eylem", date="09.05.2025", time="15.40"):
+    if not appointment_doctor_available(city, district, specialty, hospital):
+        print("No doctors available.")
+        return False
 
-    This function automates the process of navigating to the general appointment search page,
-    selects the specified city, district, clinic, and hospital, and initiates a search to check
-    for available appointment slots. If available, it fetches and prints the list of doctors.
+    if not appointment_doctor_available_dates(doctor_name):
+        print("No available dates for the doctor.")
+        return False
 
-    Args:
-        city_name (str): Name of the city/province (e.g., "İZMİR")
-        town_name (str): Name of the district/town (e.g., "URLA")
-        clinic (str): Name or partial name of the clinic (e.g., "CİLDİYE")
-        hospital (str): Name or partial name of the hospital (e.g., "URLA")
+    if not appointment_available_hours_on(date):
+        print("No available hours on the selected date.")
+        return False
 
-    Returns:
-        str or None: A message if there are no available appointments, otherwise prints available doctors
-        and returns None.
+    if not appointment_book_time(time):
+        print("Failed to book appointment at the selected time.")
+        return False
 
-    Example:
-        list_available_doctors("İZMİR", "URLA", "CİLDİYE", "URLA")
+    print("Appointment successfully booked!")
+    return True
 
-    Notes:
-        - Assumes the user is already logged in via Selenium session.
-        - Uses `wait_loading_screen()` and WebDriverWait to handle dynamic content loading.
-        - Does not select a doctor or attempt to book; only lists available options.
-    """
-    print(f"list_available_doctors city={city_name}, town={town_name}, clinic={clinic}, hospital={hospital}")
-    browser.genel_randevu_arama()
-    browser.wait_warping() #works
-    if select_city(city_name) and select_ilce(town_name) and select_clinic(clinic) and select_hospital(hospital):
-        print("PASS")
-        click_on_appointment_search_button()
-        try:
-            return fetch_all_available_doctor_names()
-        except Exception as e:
-            print(f"Error after search: {e}")
-            try:
-                browser.no_available_appointments()
-                return "No available appointments found"
-            except Exception:
-                return "Error occurred during doctor search"
-    return "Unable to select search criteria"
+@mcp.tool()
+def appointment_check_hours_tool(city="İZMİR", district="URLA", specialty="CİLDİYE", hospital="URLA", doctor_name="eylem", date="09.05.2025"):
+    if not appointment_doctor_available(city, district, specialty, hospital):
+        print("No doctors available.")
+        return False
 
-def list_available_appointment_dates(doctor_name):
-    """
-    Lists all available appointment dates for a given doctor.
+    if not appointment_doctor_available_dates(doctor_name):
+        print("No available dates for the doctor.")
+        return False
 
-    This function attempts to locate the specified doctor in the available appointment list,
-    then fetches all available appointment dates. If the target date is found, it clicks on that day
-    and lists all available time slots.
-
-    Args:
-        doctor_name (str): The name (or part of the name) of the doctor to search for (e.g., "eylem")
-        appointment_date (str): The desired appointment date in "DD.MM.YYYY" format (e.g., "30.04.2025")
-
-    Returns:
-        str or None: Returns an error message string if the doctor or date is not found,
-                     otherwise prints available time slots to the console and returns None.
-
-    Example:
-        list_available_appointment_hours("eylem", "30.04.2025")
-
-    Notes:
-        - Assumes clinic search and available appointments list are already displayed.
-        - Requires an active Selenium session and prior login.
-        - Uses `fetch_available_appointment_dates()` and `select_day()` to find valid dates.
-        - Uses `list_all_available_hours_of_a_day()` to print time slots for the selected date.
-    """
-    if select_doctor(doctor_name):
-        try:
-            return fetch_available_appointment_dates()
-        except Exception as e:
-            print(f"Error fetching dates: {e}")
-            return "Error fetching appointment dates"
-    return f"Could not find doctor: {doctor_name}"
-
-def list_available_appointment_time_slots(appointment_date):
-    """
-    Lists all available time slots for a specified appointment date.
-
-    Args:
-        appointment_date (str): The date to check availability for
-
-    Returns:
-        str: JSON string containing available time slots
+    if not appointment_available_hours_on(date):
+        print("No available hours on the selected date.")
+        return False
+    return True
     
-    Example:
-        list_available_appointment_time_slots("30.04.2025")
-        
-    Notes:
-        - Assumes the user is already logged in via Selenium session.
-        - Assumes doctor and clinic are already selected.
-    """
-    day_div = select_day(appointment_date)
+@mcp.tool()
+def appointment_check_dates_tool(city="İZMİR", district="URLA", specialty="CİLDİYE", hospital="URLA", doctor_name="eylem"):
+    if not appointment_doctor_available(city, district, specialty, hospital):
+        print("No doctors available.")
+        return False
+
+    if not appointment_doctor_available_dates(doctor_name):
+        print("No available dates for the doctor.")
+        return False
+    return True
     
-    if day_div:
-        click_on_a_day(day_div)
-        return fetch_all_available_time_slots_of_a_day()
-    return f"Could not find available appointments on date: {appointment_date}"
-
-def book_appointment(appointment_hour):
-    """
-    Attempts to book an appointment at the specified hour.
-
-    This function first selects the main hour block (e.g., "11") and then tries to select
-    the specific sub-hour slot (e.g., "11:40"). If the slot is no longer available, it logs a message.
-    If the slot is successfully selected, the function proceeds to confirm the appointment.
-
-    Args:
-        appointment_hour (str): The target appointment time in "HH:MM" format (e.g., "11:40")
-
-    Returns:
-        None
-
-    Example:
-        book_appointment("11:40")
-
-    Notes:
-        - Assumes that appointment date, doctor, and clinic have already been selected.
-        - Assumes a logged-in Selenium session and that available appointment slots are visible.
-        - Uses `select_main_hour_slot()` and `select_sub_hour_slot()` to find and select time.
-        - Calls `accept_appointment()` only if the desired time slot is still available.
-    """
+@mcp.tool()
+def appointment_check_doctor_tool(city="İZMİR", district="URLA", specialty="CİLDİYE", hospital="URLA"):
+    if not appointment_doctor_available(city, district, specialty, hospital):
+        print("No doctors available.")
+        return False
+    return True
     
-    if select_main_hour_slot(appointment_hour) and select_sub_hour_slot(appointment_hour):
-        accept_appointment()
-        return has_successfully_booked_appointment()
-    return f"Could not book appointment at {appointment_hour}"
-
-def list_available_appointment_dates_for_a_doctor(doctor_name):
-    auth_client.check_login()
-    if not select_doctor(doctor_name):
-        return f"Could not find the doctor you are looking for: {doctor_name}"
-    
-    return fetch_available_appointment_dates()
-
-def list_available_appointment_hours(appointment_date):
-    auth_client.check_login()
-    """
-    Lists all available appointment hours for a given doctor on a specific date.
-
-    This function attempts to locate the specified doctor in the available appointment list,
-    then fetches all available appointment dates. If the target date is found, it clicks on that day
-    and lists all available time slots.
-
-    Args:
-        doctor_name (str): The name (or part of the name) of the doctor to search for (e.g., "eylem")
-        appointment_date (str): The desired appointment date in "DD.MM.YYYY" format (e.g., "30.04.2025")
-
-    Returns:
-        str or None: Returns an error message string if the doctor or date is not found,
-                     otherwise prints available time slots to the console and returns None.
-
-    Example:
-        list_available_appointment_hours("30.04.2025")
-
-    Notes:
-        - Assumes clinic search and available appointments list are already displayed.
-        - Requires an active Selenium session and prior login.
-        - Uses `fetch_available_appointment_dates()` and `select_day()` to find valid dates.
-        - Uses `list_all_available_hours_of_a_day()` to print time slots for the selected date.
-    """
-    
-    day = select_day(appointment_date)
-    if not day:
-        return f"Could not find available appointments on the date you are looking for: {appointment_date}"
-    
-    click_on_a_day(day)
-    
-    #list_all_available_hours_of_a_day(day)
-    return fetch_all_available_time_slots_of_a_day()
-
 if __name__ == "__main__":
     """
     Runs the MCP server for handling appointment-related requests.
     """
-    print("MHRS appointment server is ru ning...")
-    list_available_doctors("İZMİR", "URLA", "CİLDİYE", "URLA")
-    list_available_appointment_dates_for_a_doctor("eylem")
-    list_available_appointment_hours("09.05.2025")
-    print(book_appointment("15.40"))
+    print("MHRS appointment server is running...")
+    print(appointment_book_tool())
     #browser.wait_warping()
     #print(cancel_appointment_tool("eylem")) #works
-    print(revert_appointment_tool("eylem")) #works
+    #print(revert_appointment_tool("eylem")) #works
     
