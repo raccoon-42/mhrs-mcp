@@ -12,7 +12,7 @@ from core.services.user_service import (
     click_on_appointment_search_button, fetch_all_available_doctor_names,
     select_doctor, fetch_available_appointment_dates, 
     select_day, click_on_a_day, fetch_all_available_time_slots_of_a_day,
-    select_main_hour_slot, select_sub_hour_slot
+    select_main_hour_slot, select_sub_hour_slot, genel_randevu_arama
 )
 
 browser = BrowserClient()
@@ -264,7 +264,7 @@ def appointment_doctor_available(city_name, town_name, clinic, hospital):
         - Does not select a doctor or attempt to book; only lists available options.
     """
     print(f"list_available_doctors city={city_name}, town={town_name}, clinic={clinic}, hospital={hospital}")
-    browser.genel_randevu_arama()
+    genel_randevu_arama()
     browser.wait_warping() #works
     if select_city(city_name) and select_ilce(town_name) and select_clinic(clinic) and select_hospital(hospital):
         print("PASS")

@@ -43,14 +43,4 @@ class BrowserClient:
     def wait_warping(self):
         self.wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "ant-modal-wrap")))
         
-    def genel_randevu_arama(self):
-        self.wait_loading_screen()
-
-        self.wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "ant-modal-wrap")))
-        
-        hasta_randevusu_button = self.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "div.randevu-card-dissiz:nth-child(2) > div:nth-child(1) > div:nth-child(1) > div:nth-child(2)")))
-        hasta_randevusu_button.click()
-        self.wait_loading_screen()
-        
-        genel_arama_button = self.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button.randevu-turu-button:nth-child(1)")))
-        genel_arama_button.click()
+   
