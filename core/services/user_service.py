@@ -165,7 +165,7 @@ def fetch_all_available_doctor_names():
         print("Doctors (JSON):")
         print(doctors_json)
         # Return the list of <li> elements
-        return doctors_json
+        return doctor_data
     except Exception as e:
         print(f"Error fetching doctor names: {e}")
         return False
@@ -209,7 +209,7 @@ def fetch_available_appointment_dates():
         dates_json = json.dumps(available_dates_data, ensure_ascii=False, indent=4)    
         print("DATES JSON:")
         print(dates_json)
-        return dates_json
+        return available_dates_data
     except Exception as e:
         print(f"Error fetching appointment dates: {e}")
         return json.dumps([], ensure_ascii=False)
@@ -262,7 +262,7 @@ def fetch_all_available_time_slots_of_a_day():
     full_hour_JSON = json.dumps(full_hour_data, ensure_ascii=False, indent=4)
     print("full hour JSON:")
     print(full_hour_JSON)
-    return full_hour_JSON
+    return full_hour_data
 
 def click_on_a_clock_and_list_details(clock_div):
     browser.wait_loading_screen()

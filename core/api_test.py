@@ -5,7 +5,7 @@ import os
 # Add the project root to the path to fix imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.clients.auth_client import AuthClient
-
+from utils.appointment_status import Status
 from core.services.appointment_service import (
     cancel_appointment, revert_appointment, get_active_appointments,
     appointment_doctor_available,
@@ -120,64 +120,121 @@ def get_active_appointments_tool():
 
 @mcp.tool()
 def appointment_book_tool(city="İZMİR", district="URLA", specialty="CİLDİYE", hospital="URLA", doctor_name="eylem", date="09.05.2025", time="15.40"):
+    """
+    Attempts to book an appointment with the specified doctor, date, and time.
+
+    Args:
+        city (str): City where the hospital is located.
+        district (str): District where the hospital is located.
+        specialty (str): Medical specialty (e.g., cildiye).
+        hospital (str): Name of the hospital.
+        doctor_name (str): Doctor's name.
+        date (str): Desired appointment date in "DD.MM.YYYY" format.
+        time (str): Desired appointment time in "HH.MM" format.
+
+    Returns:
+        dict: A dictionary containing:
+            - 'status' (Status): Status of the booking operation.
+    """
     if not appointment_doctor_available(city, district, specialty, hospital):
-        print("No doctors available.")
-        return False
+        return {"status": Status.NO_DOCTOR_AVAILABLE}
 
     if not appointment_doctor_available_dates(doctor_name):
-        print("No available dates for the doctor.")
-        return False
+        return {"status": Status.NO_DATE_AVAILABLE_FOR_DOCTOR}   
 
     if not appointment_available_hours_on(date):
-        print("No available hours on the selected date.")
-        return False
+        return {"status": Status.NO_AVAILABLE_HOURS}
 
     if not appointment_book_time(time):
-        print("Failed to book appointment at the selected time.")
-        return False
+        return {"status": Status.BOOKING_FAILED_AT_TIME}
 
-    print("Appointment successfully booked!")
-    return True
+    return {"status": Status.SUCCESS}
 
 @mcp.tool()
 def appointment_check_hours_tool(city="İZMİR", district="URLA", specialty="CİLDİYE", hospital="URLA", doctor_name="eylem", date="09.05.2025"):
+    """
+    Checks the available appointment hours for a specific doctor on a given date.
+
+    Args:
+        city (str): City where the hospital is located.
+        district (str): District where the hospital is located.
+        specialty (str): Medical specialty.
+        hospital (str): Name of the hospital.
+        doctor_name (str): Doctor's name.
+        date (str): Date to check for available hours ("DD.MM.YYYY").
+
+    Returns:
+        dict: A dictionary containing:
+            - 'status' (Status): Result of the availability check.
+            - 'data' (list, optional): Available hours if successful.
+    """
     if not appointment_doctor_available(city, district, specialty, hospital):
-        print("No doctors available.")
-        return False
+        return {"status": Status.NO_DOCTOR_AVAILABLE}
 
     if not appointment_doctor_available_dates(doctor_name):
-        print("No available dates for the doctor.")
-        return False
+        return {"status": Status.NO_DATE_AVAILABLE}
 
-    if not appointment_available_hours_on(date):
-        print("No available hours on the selected date.")
-        return False
-    return True
+    available_hours = appointment_available_hours_on(date)
+    if not available_hours:
+        return {"status": Status.NO_AVAILABLE_HOURS}
+
+    return {"status": Status.SUCCESS, "data": available_hours}
     
 @mcp.tool()
 def appointment_check_dates_tool(city="İZMİR", district="URLA", specialty="CİLDİYE", hospital="URLA", doctor_name="eylem"):
-    if not appointment_doctor_available(city, district, specialty, hospital):
-        print("No doctors available.")
-        return False
+    """
+    Retrieves available dates for a given doctor.
 
-    if not appointment_doctor_available_dates(doctor_name):
-        print("No available dates for the doctor.")
-        return False
-    return True
+    Args:
+        city (str): City where the hospital is located.
+        district (str): District where the hospital is located.
+        specialty (str): Medical specialty.
+        hospital (str): Name of the hospital.
+        doctor_name (str): Doctor's name.
+
+    Returns:
+        dict: A dictionary containing:
+            - 'status' (Status): Result of the date check.
+            - 'data' (list, optional): List of available dates if successful.
+    """
+    if not appointment_doctor_available(city, district, specialty, hospital):
+        return {"status": Status.NO_DOCTOR_AVAILABLE}
+
+    available_dates = appointment_doctor_available_dates(doctor_name)
+    if not available_dates:
+        return {"status": Status.NO_DATE_AVAILABLE_FOR_DOCTOR}
+
+    return {"status": Status.SUCCESS, "data": available_dates}
     
 @mcp.tool()
 def appointment_check_doctor_tool(city="İZMİR", district="URLA", specialty="CİLDİYE", hospital="URLA"):
-    if not appointment_doctor_available(city, district, specialty, hospital):
-        print("No doctors available.")
-        return False
-    return True
+    """
+    Checks for available doctors in a given hospital, district, city, and specialty.
+
+    Args:
+        city (str): City where the hospital is located.
+        district (str): District where the hospital is located.
+        specialty (str): Medical specialty.
+        hospital (str): Name of the hospital.
+
+    Returns:
+        dict: A dictionary containing:
+            - 'status' (Status): Result of the doctor availability check.
+            - 'data' (list, optional): List of available doctors if successful.
+    """
+    doctors = appointment_doctor_available(city, district, specialty, hospital)
+    if not doctors:
+        return {"status": Status.NO_DOCTOR_AVAILABLE}
+
+    return {"status": Status.SUCCESS, "data": doctors}
     
 if __name__ == "__main__":
     """
     Runs the MCP server for handling appointment-related requests.
     """
     print("MHRS appointment server is running...")
-    print(appointment_book_tool())
+    print(appointment_check_dates_tool("izmir", "urla", "cildiye", "urla", "eylem"))
+
     #browser.wait_warping()
     #print(cancel_appointment_tool("eylem")) #works
     #print(revert_appointment_tool("eylem")) #works

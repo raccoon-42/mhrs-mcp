@@ -42,16 +42,6 @@ class BrowserClient:
 
     def wait_warping(self):
         self.wait.until(EC.invisibility_of_element_located((By.CLASS_NAME, "ant-modal-wrap")))
-
-    def no_available_appointments(self):
-        print("no available appointmens func started running")
-        selector = ".ant-modal-confirm-btns > button:nth-child(1)"
-        self.wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, selector)))
-        button = self.wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, selector)))
-        self.wait_loading_screen()
-        button.click()
-        self.wait_loading_screen()
-        print("no available appointmens func stopped running") 
         
     def genel_randevu_arama(self):
         self.wait_loading_screen()

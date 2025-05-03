@@ -1,5 +1,7 @@
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException
+
 import json
 from core.clients.browser_client import BrowserClient
 from utils.string_utils import normalize_string_to_lower
@@ -50,6 +52,28 @@ def has_successfully_booked_appointment():
         print("failed to book appointment with error", e)
         return False
 
+def has_available_appointment():
+    NO_APPOINTMENT_CODE = "RND4010"
+    MODAL_SELECTOR = ".ant-modal-body"
+    OK_BUTTON_SELECTOR = ".ant-modal-confirm-btns > button:nth-child(1)"
+
+    try:
+        element = browser.driver.find_element(By.CSS_SELECTOR, MODAL_SELECTOR)
+        if NO_APPOINTMENT_CODE in element.text:
+            browser.click_button(OK_BUTTON_SELECTOR)
+            print("No available appointments (RND4010).")
+            return False
+        else:
+            print("Modal found but RND4010 not in message. Appointments may be available.")
+            return True
+
+    except NoSuchElementException:
+        print("No modal found — assuming appointments may be available.")
+        return True
+
+    except Exception as e:
+        print("Unexpected error checking appointments:", e)
+        return False  # or raise, depending on desired behavior
 
 def reject_appointment():
     print("executing reject_appointment func")
@@ -245,14 +269,11 @@ def appointment_doctor_available(city_name, town_name, clinic, hospital):
     if select_city(city_name) and select_ilce(town_name) and select_clinic(clinic) and select_hospital(hospital):
         print("PASS")
         click_on_appointment_search_button()
-        try:
-            return fetch_all_available_doctor_names()
-        except Exception as e:
-            print(f"Error after search: {e}")
+        if has_available_appointment():
             try:
-                browser.no_available_appointments()
-                return False
-            except Exception:
+                return fetch_all_available_doctor_names()
+            except Exception as e:
+                print(f"Error after search: {e}")
                 return False
     return False
 
