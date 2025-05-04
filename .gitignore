@@ -2,7 +2,7 @@
 *
 
 !README.md
-
+!LICENSE
 # Unignore the .gitignore file itself
 !.gitignore
 !requirements.txt
