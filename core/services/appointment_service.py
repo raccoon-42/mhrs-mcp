@@ -15,8 +15,9 @@ from core.services.user_service import (
     select_main_hour_slot, select_sub_hour_slot, genel_randevu_arama
 )
 
+from utils.string_utils import normalize_date_format, normalize_to_hour_format
 from utils.selection_status import SelectionStatus
-
+from utils.appointment_status import Status
 browser = BrowserClient()
 auth_client = AuthClient()
 
@@ -295,9 +296,9 @@ def appointment_doctor_available(city_name, town_name, clinic, hospital):
             doctors = fetch_all_available_doctor_names()
             return {"status": SelectionStatus.SUCCESS, "doctors": doctors}
         except Exception as e:
-            return {"status": SelectionStatus.DOCTOR_FETCH_FAILED, "error": "Doctor fetch failed", "exception": str(e)}
+            return {"status": SelectionStatus.ERROR, "error": "Doctor fetch failed", "exception": str(e)}
     
-    return {"status": SelectionStatus.DOCTOR_NOT_FOUND, "doctors": []}  # success, but no available appointments
+    return {"status": Status.NO_AVAILABLE_APPOINTMENT, "doctors": []}  # success, but no available appointments
 
 def all_selections_successful(*results):
     return all(r["status"] == True for r in results)
@@ -325,7 +326,7 @@ def appointment_book_time(appointment_hour):
         - Uses `select_main_hour_slot()` and `select_sub_hour_slot()` to find and select time.
         - Calls `accept_appointment()` only if the desired time slot is still available.
     """
-    
+    appointment_hour = normalize_to_hour_format(appointment_hour)
     if select_main_hour_slot(appointment_hour) and select_sub_hour_slot(appointment_hour):
         accept_appointment()
         return has_successfully_booked_appointment()
@@ -391,7 +392,7 @@ def appointment_available_hours_on(appointment_date):
         - Uses `fetch_available_appointment_dates()` and `select_day()` to find valid dates.
         - Uses `list_all_available_hours_of_a_day()` to print time slots for the selected date.
     """
-    
+    appointment_date = normalize_date_format(appointment_date)
     day = select_day(appointment_date)
     if not day:
         print(f"Could not find available appointments on the date you are looking for: {appointment_date}")

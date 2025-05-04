@@ -4,7 +4,7 @@ import json
 import time
 import re
 from core.clients.browser_client import BrowserClient
-from utils.string_utils import normalize_string_to_lower, normalize_string_to_upper, parse_main_hour, normalize_to_colon_format
+from utils.string_utils import normalize_string_to_lower, normalize_string_to_upper, parse_main_hour, normalize_to_hour_format
 
 from utils.selection_status import SelectionStatus
 browser = BrowserClient()
@@ -319,7 +319,7 @@ def select_main_hour_slot(target_clock):
 
 # both clicks and returns the button
 def select_sub_hour_slot(target_clock):
-    target_clock = normalize_to_colon_format(target_clock)
+    target_clock = normalize_to_hour_format(target_clock)
     #input clock=16:20
     #clickable_clock_buttons = wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, ".ant-collapse-content-active > div")))
     clickable_clock_buttons = browser.driver.find_elements(By.CSS_SELECTOR, "div.ant-collapse-content-active button.slot-saat-button")

@@ -124,20 +124,40 @@ def get_active_appointments_tool():
 @mcp.tool()
 def appointment_book_tool(city, district, specialty, hospital, doctor_name, date, time):
     """
-    Attempts to book an appointment with the specified doctor, date, and time.
+    Books an appointment with a specific doctor at a given time and date.
+
+    This function performs a complete booking flow:
+    1. Checks doctor availability in the specified location
+    2. Verifies available dates for the doctor
+    3. Checks available hours on the selected date
+    4. Attempts to book the appointment at the specified time
 
     Args:
-        city (str): City where the hospital is located.
-        district (str): District where the hospital is located.
-        specialty (str): Medical specialty (e.g., cildiye).
-        hospital (str): Name of the hospital.
-        doctor_name (str): Doctor's name.
-        date (str): Desired appointment date in "DD.MM.YYYY" format.
-        time (str): Desired appointment time in "HH.MM" format.
+        city (str): City where the hospital is located (e.g., "İZMİR")
+        district (str): District where the hospital is located (e.g., "URLA")
+        specialty (str): Medical specialty (e.g., "CİLDİYE")
+        hospital (str): Name of the hospital (e.g., "URLA")
+        doctor_name (str): Doctor's name (e.g., "eylem")
+        date (str): Appointment date in "DD.MM.YYYY" format (e.g., "09.05.2025")
+        time (str): Appointment time in "HH:MM" format (e.g., "15:40")
 
     Returns:
         dict: A dictionary containing:
-            - 'status' (Status): Status of the booking operation.
+            - 'status' (Status): Result of the booking attempt
+            - Additional fields may be present based on the status
+
+    Example:
+        >>> result = appointment_book_tool(
+        ...     city="İZMİR",
+        ...     district="URLA",
+        ...     specialty="CİLDİYE",
+        ...     hospital="URLA",
+        ...     doctor_name="eylem",
+        ...     date="09.05.2025",
+        ...     time="15:40"
+        ... )
+        >>> print(result)
+        {'status': Status.SUCCESS}
     """
     response = appointment_doctor_available(city, district, specialty, hospital)
     if not response["status"] == SelectionStatus.SUCCESS:
@@ -157,20 +177,40 @@ def appointment_book_tool(city, district, specialty, hospital, doctor_name, date
 @mcp.tool()
 def appointment_check_hours_tool(city, district, specialty, hospital, doctor_name, date):
     """
-    Checks the available appointment hours for a specific doctor on a given date.
+    Checks available appointment hours for a specific doctor on a given date.
+
+    This function:
+    1. Verifies doctor availability in the specified location
+    2. Checks if the doctor has available dates
+    3. Retrieves all available time slots for the specified date
 
     Args:
-        city (str): City where the hospital is located.
-        district (str): District where the hospital is located.
-        specialty (str): Medical specialty.
-        hospital (str): Name of the hospital.
-        doctor_name (str): Doctor's name.
-        date (str): Date to check for available hours ("DD.MM.YYYY").
+        city (str): City where the hospital is located (e.g., "İZMİR")
+        district (str): District where the hospital is located (e.g., "URLA")
+        specialty (str): Medical specialty (e.g., "CİLDİYE")
+        hospital (str): Name of the hospital (e.g., "URLA")
+        doctor_name (str): Doctor's name (e.g., "eylem")
+        date (str): Date to check in "DD.MM.YYYY" format (e.g., "09.05.2025")
 
     Returns:
         dict: A dictionary containing:
-            - 'status' (Status): Result of the availability check.
-            - 'data' (list, optional): Available hours if successful.
+            - 'status' (Status): Result of the availability check
+            - 'data' (list): Available time slots if successful
+
+    Example:
+        >>> result = appointment_check_hours_tool(
+        ...     city="İZMİR",
+        ...     district="URLA",
+        ...     specialty="CİLDİYE",
+        ...     hospital="URLA",
+        ...     doctor_name="eylem",
+        ...     date="09.05.2025"
+        ... )
+        >>> print(result)
+        {
+            'status': Status.SUCCESS,
+            'data': ['09:00', '09:20', '09:40', '10:00']
+        }
     """
     response = appointment_doctor_available(city, district, specialty, hospital)
     if not response["status"] == SelectionStatus.SUCCESS:
@@ -188,19 +228,37 @@ def appointment_check_hours_tool(city, district, specialty, hospital, doctor_nam
 @mcp.tool()
 def appointment_check_dates_tool(city, district, specialty, hospital, doctor_name):
     """
-    Retrieves available dates for a given doctor.
+    Retrieves available appointment dates for a specific doctor.
+
+    This function:
+    1. Verifies doctor availability in the specified location
+    2. Retrieves all available dates for the doctor
 
     Args:
-        city (str): City where the hospital is located.
-        district (str): District where the hospital is located.
-        specialty (str): Medical specialty.
-        hospital (str): Name of the hospital.
-        doctor_name (str): Doctor's name.
+        city (str): City where the hospital is located (e.g., "İZMİR")
+        district (str): District where the hospital is located (e.g., "URLA")
+        specialty (str): Medical specialty (e.g., "CİLDİYE")
+        hospital (str): Name of the hospital (e.g., "URLA")
+        doctor_name (str): Doctor's name (e.g., "eylem")
 
     Returns:
         dict: A dictionary containing:
-            - 'status' (Status): Result of the date check.
-            - 'data' (list, optional): List of available dates if successful.
+            - 'status' (Status): Result of the date check
+            - 'data' (list): Available dates if successful
+
+    Example:
+        >>> result = appointment_check_dates_tool(
+        ...     city="İZMİR",
+        ...     district="URLA",
+        ...     specialty="CİLDİYE",
+        ...     hospital="URLA",
+        ...     doctor_name="eylem"
+        ... )
+        >>> print(result)
+        {
+            'status': Status.SUCCESS,
+            'data': ['09.05.2025', '10.05.2025', '11.05.2025']
+        }
     """
     response = appointment_doctor_available(city, district, specialty, hospital)
     if not response["status"] == SelectionStatus.SUCCESS:
@@ -215,33 +273,46 @@ def appointment_check_dates_tool(city, district, specialty, hospital, doctor_nam
 @mcp.tool()
 def appointment_check_doctor_tool(city, district, specialty, hospital):
     """
-    Checks for available doctors in a given hospital, district, city, and specialty.
+    Checks for available doctors in a specified location and specialty.
+
+    This function:
+    1. Verifies the location and specialty combination
+    2. Retrieves a list of available doctors
 
     Args:
-        city (str): City where the hospital is located.
-        district (str): District where the hospital is located.
-        specialty (str): Medical specialty.
-        hospital (str): Name of the hospital.
+        city (str): City where the hospital is located (e.g., "İZMİR")
+        district (str): District where the hospital is located (e.g., "URLA")
+        specialty (str): Medical specialty (e.g., "CİLDİYE")
+        hospital (str): Name of the hospital (e.g., "URLA")
 
     Returns:
         dict: A dictionary containing:
-            - 'status' (Status): Result of the doctor availability check.
-            - 'data' (list, optional): List of available doctors if successful.
+            - 'status' (Status): Result of the doctor check
+            - 'data' (list): List of available doctors if successful
+            - 'details' (str, optional): Error details if unsuccessful
+
+    Example:
+        >>> result = appointment_check_doctor_tool(
+        ...     city="İZMİR",
+        ...     district="URLA",
+        ...     specialty="CİLDİYE",
+        ...     hospital="URLA"
+        ... )
+        >>> print(result)
+        {
+            'status': Status.SUCCESS,
+            'data': ['Dr. Eylem Yılmaz', 'Dr. Ali Kaya']
+        }
     """
     result = appointment_doctor_available(city, district, specialty, hospital)
-    if result["status"] == SelectionStatus.SUCCESS and result["doctors"] == []:
-        return {"status": Status.NO_DOCTOR_AVAILABLE}
-    elif result["status"] == SelectionStatus.DOCTOR_FETCH_FAILED:
-        return {"status": result["error"], "details": result["details"]}
-    
-    return {"status": Status.SUCCESS, "data": result["doctors"]}
+    return result
     
 if __name__ == "__main__":
     """
     Runs the MCP server for handling appointment-related requests.
     """
     print("MHRS appointment server is running...")
-    print(appointment_book_tool("izmir", "urla", "cildiye", "urla", "eylem", "06.05.2025", "11:40"))
+    mcp.run(transport='stdio')
     #browser.wait_warping()
     #print(cancel_appointment_tool("eylem")) #works
     #print(revert_appointment_tool("eylem")) #works

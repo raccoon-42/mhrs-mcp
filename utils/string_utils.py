@@ -9,10 +9,14 @@ def normalize_string_to_upper(string):
 def parse_main_hour(clock):
     return re.split(r'[:;,.]', clock.strip())[0]
 
-def normalize_to_colon_format(time_str):
-    parts = re.split(r'[:;,.]', time_str.strip())
+def normalize_to_hour_format(time_str):
+    parts = re.split(r'[:;,.-]', time_str.strip())
 
     hour = int(parts[0])
     minute = int(parts[1]) if len(parts) > 1 else 0  # default to 0 if minute is missing
 
     return f"{hour:02d}:{minute:02d}"
+
+def normalize_date_format(date_str):
+    parts = re.split(r'[-/.:]', date_str.strip())
+    return f"{parts[0]}.{parts[1]}.{parts[2]}"
