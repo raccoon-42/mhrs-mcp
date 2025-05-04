@@ -15,6 +15,8 @@ from core.services.user_service import (
     select_main_hour_slot, select_sub_hour_slot, genel_randevu_arama
 )
 
+from utils.selection_status import SelectionStatus
+
 browser = BrowserClient()
 auth_client = AuthClient()
 
@@ -266,16 +268,39 @@ def appointment_doctor_available(city_name, town_name, clinic, hospital):
     print(f"list_available_doctors city={city_name}, town={town_name}, clinic={clinic}, hospital={hospital}")
     genel_randevu_arama()
     browser.wait_warping() #works
-    if select_city(city_name) and select_ilce(town_name) and select_clinic(clinic) and select_hospital(hospital):
-        print("PASS")
-        click_on_appointment_search_button()
-        if has_available_appointment():
-            try:
-                return fetch_all_available_doctor_names()
-            except Exception as e:
-                print(f"Error after search: {e}")
-                return False
-    return False
+    
+    status = select_city(city_name)
+    if status != SelectionStatus.SUCCESS:
+        return {"status": SelectionStatus.CITY_NOT_FOUND}
+    
+    status = select_ilce(town_name)
+    if status != SelectionStatus.SUCCESS:
+        return {"status": SelectionStatus.TOWN_NOT_FOUND}
+    
+    status = select_clinic(clinic)
+    print(f"select_clinic status: {status}")
+    if status != SelectionStatus.SUCCESS:
+        return {"status": SelectionStatus.CLINIC_NOT_FOUND}
+    
+    print("I SHOULD NOT BE SEEING THIS")
+    status = select_hospital(hospital)
+    if status != SelectionStatus.SUCCESS:
+        return {"status": SelectionStatus.HOSPITAL_NOT_FOUND}
+    
+    print("PASS")
+    click_on_appointment_search_button()
+    
+    if has_available_appointment():
+        try:
+            doctors = fetch_all_available_doctor_names()
+            return {"status": SelectionStatus.SUCCESS, "doctors": doctors}
+        except Exception as e:
+            return {"status": SelectionStatus.DOCTOR_FETCH_FAILED, "error": "Doctor fetch failed", "exception": str(e)}
+    
+    return {"status": SelectionStatus.DOCTOR_NOT_FOUND, "doctors": []}  # success, but no available appointments
+
+def all_selections_successful(*results):
+    return all(r["status"] == True for r in results)
 
 def appointment_book_time(appointment_hour):
     """
@@ -333,6 +358,7 @@ def appointment_doctor_available_dates(doctor_name):
         - Uses `list_all_available_hours_of_a_day()` to print time slots for the selected date.
     """
     auth_client.check_login()
+    print(f"executing appointment_doctor_available_dates func for doctor_name={doctor_name}")
     if not select_doctor(doctor_name):
         print(f"Could not find the doctor you are looking for: {doctor_name}")
         return False

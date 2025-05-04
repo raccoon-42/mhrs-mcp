@@ -6,6 +6,7 @@ import re
 from core.clients.browser_client import BrowserClient
 from utils.string_utils import normalize_string_to_lower, normalize_string_to_upper, parse_main_hour, normalize_to_colon_format
 
+from utils.selection_status import SelectionStatus
 browser = BrowserClient()
 
 def select_city(city_name):
@@ -28,13 +29,13 @@ def select_city(city_name):
                 city.click()
                 print(f"Selected city: {city.text}")
                 browser.wait_loading_screen()
-                return True
+                return SelectionStatus.SUCCESS
         
         print(f"City not found: {city_name}")
-        return False
+        return SelectionStatus.CITY_NOT_FOUND
     except Exception as e:
         print(f"Error selecting city: {e}")
-        return False
+        return SelectionStatus.ERROR
 
 def select_ilce(town_name):
     # Normalize and convert to uppercase
@@ -55,13 +56,13 @@ def select_ilce(town_name):
                 town.click()
                 print(f"Selected town: {town.text}")
                 browser.wait_loading_screen()
-                return True
+                return SelectionStatus.SUCCESS
         
         print(f"Town not found: {town_name}")
-        return False
+        return SelectionStatus.TOWN_NOT_FOUND
     except Exception as e:
         print(f"Error selecting town: {e}")
-        return False
+        return SelectionStatus.ERROR
 
 def select_clinic(clinic_name):
     # Normalize and convert to uppercase
@@ -85,14 +86,14 @@ def select_clinic(clinic_name):
                 clinic.click()
                 print(f"Selected clinic: {clinic.text}")
                 browser.wait_loading_screen()
-                return True
+                return SelectionStatus.SUCCESS
         
                 
         print(f"Clinic not found: {clinic_name}")
-        return False
+        return SelectionStatus.CLINIC_NOT_FOUND
     except Exception as e:
         print(f"Error selecting clinic: {e}")
-        return False
+        return SelectionStatus.ERROR
 
 def select_hospital(hospital_name):
     hospital_name = normalize_string_to_upper(hospital_name)
@@ -116,13 +117,13 @@ def select_hospital(hospital_name):
                 hospital.click()
                 print(f"Selected hospital: {hospital.text}")
                 browser.wait_loading_screen()
-                return True 
+                return SelectionStatus.SUCCESS 
                 
         print(f"Hospital not found: {hospital_name}")
-        return False
+        return SelectionStatus.HOSPITAL_NOT_FOUND
     except Exception as e:
         print(f"Error selecting hospital: {e}")
-        return False
+        return SelectionStatus.ERROR
     
 def genel_randevu_arama():
     browser.wait_loading_screen()
@@ -264,6 +265,9 @@ def fetch_all_available_time_slots_of_a_day():
         main_hour_data = clock_div.text
         print(f"Tab content: {clock_div.text}")
         sub_hour_data = click_on_a_clock_and_list_details(clock_div)
+        
+        if not sub_hour_data:
+            continue
         
         full_hour_info = {
             "main_hour": main_hour_data,    
