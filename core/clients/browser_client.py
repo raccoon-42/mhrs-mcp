@@ -8,7 +8,10 @@ import os
 
 # Set up Firefox options for headless mode
 os.environ["webdriver.gecko.driver"] = "/opt/homebrew/bin/geckodriver"
+
 options = Options()
+options.headless = True  # Enable headless mode
+options.add_argument("--headless")
 
 class BrowserClient:
     _instance = None
