@@ -6,7 +6,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.clients.auth_client import AuthClient
 
-from utils.appointment_status import Status
+from utils.appointment_status import AppointmentStatus
 from utils.selection_status import SelectionStatus
 
 from core.services.appointment_service import (
@@ -15,6 +15,8 @@ from core.services.appointment_service import (
     appointment_doctor_available_dates,
     appointment_available_hours_on,
     appointment_book_time,
+    accept_notification_modal,
+    get_modal_text_if_present,
 )
 from core.clients.browser_client import BrowserClient
 
@@ -164,15 +166,15 @@ def appointment_book_tool(city, district, specialty, hospital, doctor_name, date
         return response
 
     if not appointment_doctor_available_dates(doctor_name):
-        return {"status": Status.NO_DOCTOR_AVAILABLE}   
+        return {"status": AppointmentStatus.NO_DOCTOR_AVAILABLE}   
 
     if not appointment_available_hours_on(date):
-        return {"status": Status.NO_DATE_AVAILABLE_FOR_DOCTOR}
+        return {"status": AppointmentStatus.NO_DATE_AVAILABLE_FOR_DOCTOR}
 
     if not appointment_book_time(time):
-        return {"status": Status.NO_AVAILABLE_HOURS_ON_DATE}
+        return {"status": AppointmentStatus.NO_AVAILABLE_HOURS_ON_DATE}
 
-    return {"status": Status.SUCCESS}
+    return {"status": AppointmentStatus.SUCCESS}
 
 @mcp.tool()
 def appointment_check_hours_tool(city, district, specialty, hospital, doctor_name, date):
@@ -217,13 +219,13 @@ def appointment_check_hours_tool(city, district, specialty, hospital, doctor_nam
         return response
 
     if not appointment_doctor_available_dates(doctor_name):
-        return {"status": Status.NO_DATE_AVAILABLE}
+        return {"status": AppointmentStatus.NO_DATE_AVAILABLE}
 
     available_hours = appointment_available_hours_on(date)
     if not available_hours:
-        return {"status": Status.NO_DATE_AVAILABLE_FOR_DOCTOR}
-
-    return {"status": Status.SUCCESS, "data": available_hours}
+        return {"status": AppointmentStatus.NO_DATE_AVAILABLE_FOR_DOCTOR}
+    
+    return {"status": AppointmentStatus.SUCCESS, "data": available_hours}
     
 @mcp.tool()
 def appointment_check_dates_tool(city, district, specialty, hospital, doctor_name):
@@ -266,9 +268,9 @@ def appointment_check_dates_tool(city, district, specialty, hospital, doctor_nam
 
     available_dates = appointment_doctor_available_dates(doctor_name)
     if not available_dates:
-        return {"status": Status.NO_DATE_AVAILABLE_FOR_DOCTOR}
-
-    return {"status": Status.SUCCESS, "data": available_dates}
+        return {"status": AppointmentStatus.NO_DATE_AVAILABLE_FOR_DOCTOR}
+   
+    return {"status": AppointmentStatus.SUCCESS, "data": available_dates}
     
 @mcp.tool()
 def appointment_check_doctor_tool(city, district, specialty, hospital):
@@ -305,8 +307,25 @@ def appointment_check_doctor_tool(city, district, specialty, hospital):
         }
     """
     result = appointment_doctor_available(city, district, specialty, hospital)
+    
     return result
     
+@mcp.tool()
+def accept_notification_modal_tool():
+    """
+    Accepts the notification modal that appears when an appointment is not available.
+
+    This function is usable when a status code with Status.NOTIFY_WHEN_AVAILABLE is returned.
+    """
+    return accept_notification_modal()
+
+@mcp.tool()
+def get_modal_text_if_present_tool():
+    """
+    Checks if a pop-up message (modal) is present on the page and returns the text if present.
+    """
+    return get_modal_text_if_present()
+
 if __name__ == "__main__":
     """
     Runs the MCP server for handling appointment-related requests.

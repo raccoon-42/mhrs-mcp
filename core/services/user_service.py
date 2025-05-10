@@ -9,6 +9,29 @@ from utils.string_utils import normalize_string_to_lower, normalize_string_to_up
 from utils.selection_status import SelectionStatus
 browser = BrowserClient()
 
+def select_dropdown(selection_name, dropdown_selector, item_selector):
+    selection_name = normalize_string_to_upper(selection_name)
+    try:
+        browser.wait_loading_screen()
+        browser.wait.until(EC.element_to_be_clickable((By.ID, dropdown_selector))).click()
+        browser.wait_loading_screen()
+        
+        items = browser.wait.until(EC.presence_of_all_elements_located((By.CSS_SELECTOR, item_selector)))
+        
+        for item in items:
+            print(f"item name is {item.text}")
+            if selection_name in normalize_string_to_upper(item.text):
+                item.click()
+                print(f"Selected item: {item.text}")
+                browser.wait_loading_screen()
+                return SelectionStatus.SUCCESS
+            print(f"item not found: {selection_name}")
+        return SelectionStatus.ITEM_NOT_FOUND
+    except Exception as e:
+        print(f"Error selecting item: {e}")
+        return SelectionStatus.ERROR   
+
+
 def select_city(city_name):
     # Normalize and convert to uppercase
     city_name = normalize_string_to_upper(city_name)

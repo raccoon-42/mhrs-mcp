@@ -12,4 +12,5 @@ class SelectionStatus(Enum):
     DATE_NOT_FOUND = "date_not_found"
     TIME_NOT_FOUND = "time_not_found"
     INVALID_INPUT = "invalid_input"
+    ITEM_NOT_FOUND = "item_not_found"
     TIMEOUT = "timeout"

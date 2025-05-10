@@ -17,7 +17,9 @@ from core.services.user_service import (
 
 from utils.string_utils import normalize_date_format, normalize_to_hour_format
 from utils.selection_status import SelectionStatus
-from utils.appointment_status import Status
+from utils.appointment_status import AppointmentStatus
+from utils.status import Status
+
 browser = BrowserClient()
 auth_client = AuthClient()
 
@@ -56,18 +58,17 @@ def has_successfully_booked_appointment():
         return False
 
 def has_available_appointment():
-    NO_APPOINTMENT_CODE = "RND4010"
+    ANY_ERROR = "RND"
     MODAL_SELECTOR = ".ant-modal-body"
     OK_BUTTON_SELECTOR = ".ant-modal-confirm-btns > button:nth-child(1)"
 
     try:
         element = browser.driver.find_element(By.CSS_SELECTOR, MODAL_SELECTOR)
-        if NO_APPOINTMENT_CODE in element.text:
-            browser.click_button(OK_BUTTON_SELECTOR)
-            print("No available appointments (RND4010).")
+        if ANY_ERROR in element.text:
+            print("Found error starting with RND in modal.")
             return False
         else:
-            print("Modal found but RND4010 not in message. Appointments may be available.")
+            print("Modal found but RND not in message. Appointments may be available.")
             return True
 
     except NoSuchElementException:
@@ -77,6 +78,53 @@ def has_available_appointment():
     except Exception as e:
         print("Unexpected error checking appointments:", e)
         return False  # or raise, depending on desired behavior
+    
+def accept_notification_modal():
+    try:
+        ACCEPT_BUTTON_SELECTOR = "button.ant-btn-primary:nth-child(2)"
+        browser.click_button(ACCEPT_BUTTON_SELECTOR)
+        return True
+    except Exception as e:
+        print(f"Failed to accept notification modal: {e}")
+        return False
+
+def modal_has_error_code(error_code):
+    MODAL_SELECTOR = ".ant-modal-body"
+    
+    try:
+        element = browser.driver.find_element(By.CSS_SELECTOR, MODAL_SELECTOR)
+        if error_code in element.text:
+            return True
+        else:
+            return False
+    except Exception as e:
+        print(f"Failed to detect browser element with MODAL_SELECTOR: {MODAL_SELECTOR} for error code: {error_code}.")
+        return False
+
+def modal_has_any_error():
+    return modal_has_error_code("RND")
+
+def has_modal():
+    MODAL_SELECTOR = ".ant-modal-body"
+    try:
+        browser.driver.find_element(By.CSS_SELECTOR, MODAL_SELECTOR)
+        return True
+    except Exception as e:
+        return False
+    
+def return_modal_text():
+    MODAL_SELECTOR = ".ant-modal-confirm-content"
+    try:
+        element = browser.driver.find_element(By.CSS_SELECTOR, MODAL_SELECTOR)
+        return element.text
+    except Exception as e:
+        return None
+    
+def get_modal_text_if_present():
+    if has_modal():
+        return {"status": Status.SUCCESS, "text": return_modal_text()}
+    else:
+        return {"status": Status.FAILURE}
 
 def reject_appointment():
     print("executing reject_appointment func")
@@ -297,8 +345,12 @@ def appointment_doctor_available(city_name, town_name, clinic, hospital):
             return {"status": SelectionStatus.SUCCESS, "doctors": doctors}
         except Exception as e:
             return {"status": SelectionStatus.ERROR, "error": "Doctor fetch failed", "exception": str(e)}
+    elif modal_has_error_code("RND4030"):
+        return {"status": AppointmentStatus.NOTIFY_WHEN_AVAILABLE, "doctors": []}
+    elif has_modal():
+        return {"status": Status.SHOW_MESSAGE, "text": return_modal_text()}
     
-    return {"status": Status.NO_AVAILABLE_APPOINTMENT, "doctors": []}  # success, but no available appointments
+    return {"status": AppointmentStatus.NO_AVAILABLE_APPOINTMENT, "doctors": []}  # success, but no available appointments
 
 def all_selections_successful(*results):
     return all(r["status"] == True for r in results)
